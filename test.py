@@ -1,16 +1,19 @@
-import io
+import marshal
+import random
+import os
 
 
 def override_open(opt1, opt2):
 
     import sys  # noqa: F401
+    import io  # noqa: F401
 
-    options = ['Above ground was the medieval settlement of Skaar’s Outpost, '
+    options = ['Above ground was the medieval settlement of Skaars Outpost, '
                'originally a fort to guard the cave entrance. Its inception '
                'as a town had been in the lodging and supply needs of '
                'explorers there to attempt the subterranean labyrinth '
-               'when it had opened as a commercial venture. With the caverns’ '
-               'flooding and subsequent closure, however, Skaar’s Outpost '
+               'when it had opened as a commercial venture. With the caverns '
+               'flooding and subsequent closure, however, Skaars Outpost '
                'had declined into an agricultural community miles from any '
                'trade routes.',
                'Muy lejos, mas alla de las montanas de palabras, alejados de '
@@ -31,7 +34,7 @@ def override_open(opt1, opt2):
                'versales, enfundo su inicial en el cinturon y se puso en '
                'camino.', 'Cuando ya habia escalado las primeras colinas de '
                'las montanas cursivas, se dio media vuelta para dirigir su '
-               'mirada por última vez, hacia su ciudad natal Letralandia, el'
+               'mirada por ultima vez, hacia su ciudad natal Letralandia, el'
                ' encabezamiento del pueblo Alfabeto y el subtitulo de su '
                'camino.'
                ]
@@ -46,19 +49,22 @@ def override_open(opt1, opt2):
             self.__written_text = ''
             self.mode = mode
             self.opened = True
+            self.SALT = 1103
 
         def __enter__(self):
             return self
 
         def __exit__(self, e_type, e_val, e_tb):
             self.close()
-            self.__text = None
+
+        def __iter__(self):
+            return self.__text
 
         def close(self):
             self.opened = False
 
             if self.mode in ['w', 'w+', 'wb']:
-                self.__text = self.__written_text
+                self.__text = iter(self.__written_text.splitlines())
 
         def write(self, text):
             self.__check_writeable()
@@ -99,7 +105,8 @@ def override_open(opt1, opt2):
 
         def reveal(self):
 
-            return (self.__written_text, self.__written_text == self.__text)
+            return (self.SALT * len(self.__written_text),
+                    self.__written_text == '\n'.join(self.__text))
 
         def __check_open_file(self):
             if not self.opened:
@@ -109,9 +116,13 @@ def override_open(opt1, opt2):
             if self.mode in ['w', 'w+', 'wb']:
                 raise io.UnsupportedOperation('not readable')
 
+        def __check_writeable(self):
+            if self.mode not in ['w', 'w+']:
+                raise io.UnsupportedOperation('not writeable')
+
     def my_open(path, *args, **kwargs):
         if path != 'archivo.txt':
-            raise FileNotFoundError('File not found.')
+            raise FileNotFoundError(f'File not found')
 
         data = options[opt1] + '\n' + options[opt2]
 
@@ -124,6 +135,14 @@ def override_open(opt1, opt2):
 
     main_module = sys.modules[__name__]
     setattr(main_module, 'open', my_open)
+
+
+# code = override_open.__code__
+# curdir = os.getcwd()
+# os.chdir(os.path.expanduser('~'))
+# print(marshal.dumps(code))
+# print(random.randint(0, 4), random.randint(0, 4))
+# os.chdir(curdir)
 
 
 if __name__ == '__main__':
